@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Bon Bahan Makanan | Instalasi Gizi RS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Print Styles untuk Cetak Bon Fisik */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-bon, #printable-bon * {
+                visibility: visible;
+            }
+            #printable-bon {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+                background: white;
+                color: black;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Navbar / Header -->
+    <header class="bg-teal-700 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Brand -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white/10 p-2 rounded-xl backdrop-blur-sm">
+                        <i data-lucide="utensils" class="w-6 h-6 text-teal-100"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg sm:text-xl tracking-tight leading-none">E-Bon Instalasi Gizi</h1>
+                        <p class="text-xs text-teal-200 mt-0.5">Sistem Pengambilan Bahan Makanan Gudang</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs (Desktop) -->
+                <nav class="hidden md:flex space-x-2">
+                    <button onclick="switchTab('form-bon')" id="nav-form-bon" class="tab-btn bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition">
+                        <i data-lucide="file-plus-2" class="w-4 h-4"></i>
+                        <span>Buat Bon Baru</span>
+                    </button>
+                    <button onclick="switchTab('riwayat')" id="nav-riwayat" class="tab-btn text-teal-100 hover:bg-teal-600/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition">
+                        <i data-lucide="history" class="w-4 h-4"></i>
+                        <span>Buku Log / Riwayat</span>
+                        <span id="badge-riwayat" class="bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('gudang')" id="nav-gudang" class="tab-btn text-teal-100 hover:bg-teal-600/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition">
+                        <i data-lucide="package" class="w-4 h-4"></i>
+                        <span>Stok Gudang</span>
+                    </button>
+                </nav>
+
+                <!-- Tanggal & Shift Info -->
+                <div class="hidden sm:flex items-center space-x-3 text-right">
+                    <div>
+                        <p id="current-date" class="text-xs font-medium text-teal-100"></p>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-100 border border-emerald-400/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 mr-1.5 animate-pulse"></span>
+                            Gudang Gizi Aktif
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Bar -->
+        <div class="md:hidden bg-teal-800 px-2 py-2 flex justify-around border-t border-teal-600/50">
+            <button onclick="switchTab('form-bon')" id="mob-form-bon" class="mob-tab-btn bg-teal-900/80 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5">
+                <i data-lucide="file-plus-2" class="w-4 h-4"></i>
+                <span>Buat Bon</span>
+            </button>
+            <button onclick="switchTab('riwayat')" id="mob-riwayat" class="mob-tab-btn text-teal-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span>Riwayat (<span id="mob-badge-riwayat">0</span>)</span>
+            </button>
+            <button onclick="switchTab('gudang')" id="mob-gudang" class="mob-tab-btn text-teal-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5">
+                <i data-lucide="package" class="w-4 h-4"></i>
+                <span>Stok Gudang</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Toast Notification Container -->
+        <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+        <!-- ==================== TAB 1: BUAT BON BARU ==================== -->
+        <section id="tab-form-bon" class="tab-content block">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Kolom Kiri: Pilih Bahan Makanan dari Gudang (7 Kolom) -->
+                <div class="lg:col-span-7 flex flex-col space-y-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="shopping-basket" class="w-5 h-5 text-teal-600"></i>
+                                    Katalog Bahan Gudang
+                                </h2>
+                                <p class="text-xs text-slate-500">Pilih bahan makanan yang akan diambil untuk pengolahan</p>
+                            </div>
+                            
+                            <!-- Filter Kategori -->
+                            <select id="filter-kategori" onchange="renderKatalog()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block p-2.5">
+                                <option value="Semua">Semua Kategori</option>
+                                <option value="Bahan Kering">Bahan Kering & Sembako</option>
+                                <option value="Bahan Basah">Bahan Basah (Lauk)</option>
+                                <option value="Sayur & Buah">Sayur & Buah</option>
+                                <option value="Bumbu">Bumbu Dapur</option>
+                                <option value="Susu & Enteral">Susu & Nutrisi Enteral</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="relative mb-4">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                            </div>
+                            <input type="text" id="search-bahan" oninput="renderKatalog()" placeholder="Cari nama bahan (misal: Beras, Ayam, Susu Diabetasol)..." class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full pl-10 p-2.5 transition">
+                        </div>
+
+                        <!-- Grid Daftar Bahan -->
+                        <div id="katalog-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[540px] overflow-y-auto pr-1">
+                            <!-- Di-render melalui JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Formulir Lembar Bon (5 Kolom) -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 sticky top-24">
+                        <div class="border-b border-slate-100 pb-3 mb-4 flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-semibold uppercase tracking-wider text-teal-600 bg-teal-50 px-2.5 py-1 rounded-md">Lembar Pengambilan</span>
+                                <h2 class="text-lg font-bold text-slate-800 mt-1" id="preview-no-bon">BON-GZ-001</h2>
+                            </div>
+                            <button onclick="resetBonForm()" class="text-xs text-slate-400 hover:text-rose-500 flex items-center gap-1 transition" title="Kosongkan Daftar">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                            </button>
+                        </div>
+
+                        <!-- Form Identitas Pengambil (Ahli Gizi) -->
+                        <div class="space-y-3 mb-5">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Ahli Gizi / Petugas Pengambil <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <i data-lucide="user-check" class="w-4 h-4 text-slate-400"></i>
+                                    </div>
+                                    <input type="text" id="input-ahli-gizi" placeholder="Contoh: Rina Sari, S.Gz" class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full pl-9 p-2.5">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Waktu Makan / Shift <span class="text-rose-500">*</span></label>
+                                    <select id="input-shift" class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5">
+                                        <option value="Makan Pagi (Shift Pagi)">Makan Pagi</option>
+                                        <option value="Snack Pagi">Snack Pagi</option>
+                                        <option value="Makan Siang (Shift Siang)">Makan Siang</option>
+                                        <option value="Snack Sore">Snack Sore</option>
+                                        <option value="Makan Malam (Shift Sore)">Makan Malam</option>
+                                        <option value="Persiapan Besok">Persiapan Besok</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Peruntukan Pasien / Diet</label>
+                                    <select id="input-peruntukan" class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5">
+                                        <option value="Semua Kelas (VIP - III)">Semua Kelas (Umum)</option>
+                                        <option value="Diet Khusus (DM/RG/RP)">Diet Khusus (DM/RG/RP)</option>
+                                        <option value="Makanan Cair / Enteral">Makanan Cair / Sonde</option>
+                                        <option value="VIP & VVIP">VIP & VVIP</option>
+                                        <option value="Karyawan / Dokter Jaga">Ekstra Dokter Jaga</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                                <input type="text" id="input-catatan" placeholder="Misal: Untuk 120 porsi pasien rawat inap..." class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5">
+                            </div>
+                        </div>
+
+                        <!-- Daftar Item yang Dibon -->
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Daftar Barang Diambil (<span id="cart-count">0</span>)</h3>
+                            </div>
+                            
+                            <div id="cart-items-container" class="bg-slate-50 rounded-xl border border-slate-200 p-3 min-h-[160px] max-h-[260px] overflow-y-auto space-y-2">
+                                <!-- State Kosong -->
+                                <div id="empty-cart-msg" class="h-32 flex flex-col items-center justify-center text-center text-slate-400">
+                                    <i data-lucide="clipboard-list" class="w-8 h-8 mb-1.5 opacity-50"></i>
+                                    <p class="text-xs">Belum ada bahan makanan dipilih.<br>Klik tombol <b>+ Ambil</b> di sebelah kiri.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tombol Submit -->
+                        <button onclick="submitBon()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition flex items-center justify-center space-x-2">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                            <span>Simpan & Catat Bon Pengambilan</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: RIWAYAT / BUKU LOG BON ==================== -->
+        <section id="tab-riwayat" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="book-open-check" class="w-6 h-6 text-teal-600"></i>
+                            Buku Log Pengambilan Bahan Makanan
+                        </h2>
+                        <p class="text-sm text-slate-500">Catatan digital riwayat pengeluaran barang dari gudang instalasi gizi</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+                            <input type="text" id="search-riwayat" oninput="renderRiwayat()" placeholder="Cari No. Bon / Ahli Gizi..." class="bg-slate-50 border border-slate-200 text-sm rounded-xl pl-9 pr-4 py-2 focus:ring-teal-500 focus:border-teal-500">
+                        </div>
+                        <button onclick="exportCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Unduh Laporan (CSV)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabel Riwayat -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3.5">No. Bon</th>
+                                <th class="px-4 py-3.5">Waktu & Tanggal</th>
+                                <th class="px-4 py-3.5">Ahli Gizi / Pengambil</th>
+                                <th class="px-4 py-3.5">Shift & Peruntukan</th>
+                                <th class="px-4 py-3.5">Ringkasan Bahan</th>
+                                <th class="px-4 py-3.5 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riwayat-tbody" class="divide-y divide-slate-200">
+                            <!-- Di-render via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: STOK GUDANG ==================== -->
+        <section id="tab-gudang" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="warehouse" class="w-6 h-6 text-teal-600"></i>
+                            Manajemen Stok Gudang Gizi
+                        </h2>
+                        <p class="text-sm text-slate-500">Pantau sisa stok bahan makanan atau tambah stok masuk dari supplier</p>
+                    </div>
+
+                    <button onclick="openModalTambahBarang()" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition self-start sm:self-auto">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Tambah Bahan Baru</span>
+                    </button>
+                </div>
+
+                <!-- Ringkasan Kartu Stok -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center space-x-3">
+                        <div class="p-3 bg-teal-100 text-teal-700 rounded-xl">
+                            <i data-lucide="boxes" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Jenis Bahan</p>
+                            <p class="text-xl font-bold text-slate-800" id="stat-total-jenis">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center space-x-3">
+                        <div class="p-3 bg-amber-100 text-amber-700 rounded-xl">
+                            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Stok Menipis (&le; 5)</p>
+                            <p class="text-xl font-bold text-amber-600" id="stat-stok-menipis">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center space-x-3">
+                        <div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                            <i data-lucide="file-check-2" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Transaksi Bon</p>
+                            <p class="text-xl font-bold text-emerald-600" id="stat-total-bon">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Stok -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3.5">Kode</th>
+                                <th class="px-4 py-3.5">Nama Bahan Makanan</th>
+                                <th class="px-4 py-3.5">Kategori</th>
+                                <th class="px-4 py-3.5">Sisa Stok</th>
+                                <th class="px-4 py-3.5">Status</th>
+                                <th class="px-4 py-3.5 text-right">Restock Cepat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gudang-tbody" class="divide-y divide-slate-200">
+                            <!-- Di-render via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
+            Sistem Informasi Logistik Instalasi Gizi Rumah Sakit &bull; Pengganti Buku Bon Manual
+        </div>
+    </footer>
+
+    <!-- ==================== MODAL DETAIL & CETAK BON ==================== -->
+    <div id="modal-detail-bon" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center no-print">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-teal-600"></i>
+                    Bukti Bon Pengambilan Bahan
+                </h3>
+                <button onclick="closeModal('modal-detail-bon')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Area yang akan dicetak -->
+            <div id="printable-bon" class="p-6 overflow-y-auto space-y-4 text-sm">
+                <div class="text-center border-b-2 border-dashed border-slate-300 pb-4">
+                    <h4 class="font-bold text-base uppercase tracking-wide text-slate-900">INSTALASI GIZI RUMAH SAKIT</h4>
+                    <p class="text-xs text-slate-500">Bukti Pengambilan Bahan Makanan Gudang</p>
+                    <div class="mt-2 inline-block bg-slate-100 px-3 py-1 rounded font-mono font-bold text-slate-800" id="detail-no-bon">
+                        BON-GZ-001
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                        <span class="text-slate-400 block">Tanggal & Jam:</span>
+                        <span class="font-semibold text-slate-800" id="detail-tanggal">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Ahli Gizi / Pengambil:</span>
+                        <span class="font-semibold text-slate-800" id="detail-ahli-gizi">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Waktu Makan / Shift:</span>
+                        <span class="font-semibold text-slate-800" id="detail-shift">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Peruntukan:</span>
+                        <span class="font-semibold text-slate-800" id="detail-peruntukan">-</span>
+                    </div>
+                    <div class="col-span-2 mt-1 pt-1 border-t border-slate-200/60">
+                        <span class="text-slate-400">Catatan: </span>
+                        <span class="italic text-slate-700" id="detail-catatan">-</span>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold uppercase text-slate-500 mb-2">Rincian Bahan Makanan:</p>
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-300 text-slate-600">
+                                <th class="py-1.5 text-left">No</th>
+                                <th class="py-1.5 text-left">Nama Bahan</th>
+                                <th class="py-1.5 text-right">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-items-tbody" class="divide-y divide-slate-200">
+                            <!-- Items -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Kolom Tanda Tangan untuk Cetak -->
+                <div class="grid grid-cols-2 gap-4 pt-6 mt-4 border-t border-dashed border-slate-300 text-center text-xs">
+                    <div>
+                        <p class="text-slate-500 mb-12">Petugas Gudang Gizi,</p>
+                        <p class="font-semibold text-slate-800">( .............................. )</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 mb-12">Ahli Gizi Pengambil,</p>
+                        <p class="font-semibold text-slate-800" id="detail-ttd-nama">( .............................. )</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 no-print">
+                <button onclick="closeModal('modal-detail-bon')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200 transition">
+                    Tutup
+                </button>
+                <button onclick="window.print()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                    <span>Cetak Bon</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL TAMBAH BARANG BARU ==================== -->
+    <div id="modal-tambah-barang" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-xl overflow-hidden">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800">Tambah Bahan Makanan Baru</h3>
+                <button onclick="closeModal('modal-tambah-barang')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Bahan Makanan</label>
+                    <input type="text" id="new-item-name" placeholder="Contoh: Ikan Gabus Fillet" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                        <select id="new-item-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm">
+                            <option value="Bahan Kering">Bahan Kering</option>
+                            <option value="Bahan Basah">Bahan Basah</option>
+                            <option value="Sayur & Buah">Sayur & Buah</option>
+                            <option value="Bumbu">Bumbu</option>
+                            <option value="Susu & Enteral">Susu & Enteral</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Satuan</label>
+                        <select id="new-item-unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm">
+                            <option value="Kg">Kilogram (Kg)</option>
+                            <option value="Gram">Gram</option>
+                            <option value="Liter">Liter</option>
+                            <option value="Butir">Butir</option>
+                            <option value="Kaleng">Kaleng / Box</option>
+                            <option value="Sachet">Sachet</option>
+                            <option value="Ikat">Ikat</option>
+                            <option value="Bungkus">Bungkus</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Stok Awal Masuk</label>
+                    <input type="number" id="new-item-stock" value="10" min="1" step="0.5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm">
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeModal('modal-tambah-barang')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200">Batal</button>
+                <button onclick="simpanBarangBaru()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Simpan ke Gudang</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- 1. DATA INITIALIZATION (IN-MEMORY) ---
+        let inventory = [
+            { id: 'BM-001', name: 'Beras Putih Premium', category: 'Bahan Kering', stock: 150, unit: 'Kg' },
+            { id: 'BM-002', name: 'Beras Merah Organik (Diet DM)', category: 'Bahan Kering', stock: 45, unit: 'Kg' },
+            { id: 'BM-003', name: 'Daging Ayam Fillet Tanpa Kulit', category: 'Bahan Basah', stock: 35, unit: 'Kg' },
+            { id: 'BM-004', name: 'Daging Sapi Has Dalam', category: 'Bahan Basah', stock: 20, unit: 'Kg' },
+            { id: 'BM-005', name: 'Telur Ayam Negeri', category: 'Bahan Basah', stock: 300, unit: 'Butir' },
+            { id: 'BM-006', name: 'Ikan Kakap Fillet', category: 'Bahan Basah', stock: 18, unit: 'Kg' },
+            { id: 'BM-007', name: 'Wortel Segar', category: 'Sayur & Buah', stock: 25, unit: 'Kg' },
+            { id: 'BM-008', name: 'Bayam Hijau', category: 'Sayur & Buah', stock: 40, unit: 'Ikat' },
+            { id: 'BM-009', name: 'Pepaya California', category: 'Sayur & Buah', stock: 30, unit: 'Kg' },
+            { id: 'BM-010', name: 'Minyak Goreng Sawit', category: 'Bahan Kering', stock: 40, unit: 'Liter' },
+            { id: 'BM-011', name: 'Gula Pasir', category: 'Bahan Kering', stock: 25, unit: 'Kg' },
+            { id: 'BM-012', name: 'Garam Halus Beryodium', category: 'Bumbu', stock: 15, unit: 'Bungkus' },
+            { id: 'BM-013', name: 'Bawang Merah Kupas', category: 'Bumbu', stock: 12, unit: 'Kg' },
+            { id: 'BM-014', name: 'Bawang Putih Kupas', category: 'Bumbu', stock: 10, unit: 'Kg' },
+            { id: 'BM-015', name: 'Susu Enteral Diabetasol (180g)', category: 'Susu & Enteral', stock: 24, unit: 'Kaleng' },
+            { id: 'BM-016', name: 'Susu Tinggi Protein Peptisol', category: 'Susu & Enteral', stock: 16, unit: 'Kaleng' },
+            { id: 'BM-017', name: 'Tahu Putih Sutra', category: 'Bahan Basah', stock: 5, unit: 'Bungkus' }
+        ];
+
+        // Keranjang Bon saat ini
+        let cart = [];
+
+        // Riwayat Bon (Contoh 1 data awal agar terlihat realistis)
+        let bonHistory = [
+            {
+                noBon: 'BON-GZ-001',
+                timestamp: '25 Nov 2026, 05:30 WIB',
+                ahliGizi: 'Ns. Dewi Lestari, S.Gz',
+                shift: 'Makan Pagi (Shift Pagi)',
+                peruntukan: 'Semua Kelas (VIP - III)',
+                catatan: 'Pengambilan rutin persiapan sarapan pagi 110 pasien',
+                items: [
+                    { id: 'BM-001', name: 'Beras Putih Premium', qty: 15, unit: 'Kg' },
+                    { id: 'BM-005', name: 'Telur Ayam Negeri', qty: 110, unit: 'Butir' },
+                    { id: 'BM-007', name: 'Wortel Segar', qty: 5, unit: 'Kg' }
+                ]
+            }
+        ];
+
+        // --- 2. INISIALISASI HALAMAN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateDateDisplay();
+            updateNextBonNumber();
+            renderKatalog();
+            renderCart();
+            renderRiwayat();
+            renderGudang();
+        });
+
+        function updateDateDisplay() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+            document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+        }
+
+        function updateNextBonNumber() {
+            const nextNum = String(bonHistory.length + 1).padStart(3, '0');
+            document.getElementById('preview-no-bon').textContent = `BON-GZ-${nextNum}`;
+            document.getElementById('badge-riwayat').textContent = bonHistory.length;
+            document.getElementById('mob-badge-riwayat').textContent = bonHistory.length;
+        }
+
+        // --- 3. NAVIGASI TAB ---
+        function switchTab(tabName) {
+            // Sembunyikan semua tab
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            // Reset style tombol desktop
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-teal-800', 'text-white');
+                btn.classList.add('text-teal-100', 'hover:bg-teal-600/50');
+            });
+            const activeDesk = document.getElementById(`nav-${tabName}`);
+            if (activeDesk) {
+                activeDesk.classList.add('bg-teal-800', 'text-white');
+                activeDesk.classList.remove('text-teal-100', 'hover:bg-teal-600/50');
+            }
+
+            // Reset style tombol mobile
+            document.querySelectorAll('.mob-tab-btn').forEach(btn => {
+                btn.classList.remove('bg-teal-900/80', 'text-white');
+                btn.classList.add('text-teal-200');
+            });
+            const activeMob = document.getElementById(`mob-${tabName}`);
+            if (activeMob) {
+                activeMob.classList.add('bg-teal-900/80', 'text-white');
+                activeMob.classList.remove('text-teal-200');
+            }
+
+            if (tabName === 'gudang') renderGudang();
+            if (tabName === 'riwayat') renderRiwayat();
+            if (tabName === 'form-bon') renderKatalog();
+        }
+
+        // --- 4. RENDER KATALOG BAHAN MAKANAN ---
+        function renderKatalog() {
+            const grid = document.getElementById('katalog-grid');
+            const search = document.getElementById('search-bahan').value.toLowerCase();
+            const category = document.getElementById('filter-kategori').value;
+
+            const filtered = inventory.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) || item.id.toLowerCase().includes(search);
+                const matchCat = category === 'Semua' || item.category === category;
+                return matchSearch && matchCat;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-10 text-center text-slate-400">
+                        <p class="text-sm">Bahan makanan tidak ditemukan di gudang.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                const inCart = cart.find(c => c.id === item.id);
+                const isLowStock = item.stock <= 5;
+                const isOut = item.stock <= 0;
+
+                // Warna badge kategori
+                let badgeColor = 'bg-slate-100 text-slate-600';
+                if (item.category === 'Bahan Basah') badgeColor = 'bg-rose-50 text-rose-600';
+                if (item.category === 'Sayur & Buah') badgeColor = 'bg-emerald-50 text-emerald-600';
+                if (item.category === 'Susu & Enteral') badgeColor = 'bg-blue-50 text-blue-600';
+                if (item.category === 'Bahan Kering') badgeColor = 'bg-amber-50 text-amber-700';
+
+                return `
+                    <div class="p-3.5 rounded-xl border ${inCart ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200 bg-white'} hover:border-teal-300 transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 mb-1.5">
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${badgeColor}">${item.category}</span>
+                                <span class="text-[11px] font-mono text-slate-400">${item.id}</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-800 text-sm leading-snug mb-2">${item.name}</h4>
+                        </div>
+                        
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-1">
+                            <div>
+                                <span class="text-[11px] text-slate-400 block">Stok Gudang:</span>
+                                <span class="text-xs font-bold ${isOut ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-slate-700'}">
+                                    ${item.stock} ${item.unit}
+                                </span>
+                            </div>
+                            
+                            <button 
+                                onclick="addToCart('${item.id}')" 
+                                ${isOut ? 'disabled' : ''}
+                                class="${isOut ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : inCart ? 'bg-teal-100 text-teal-800 hover:bg-teal-200' : 'bg-teal-600 text-white hover:bg-teal-700'} px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                                <i data-lucide="${inCart ? 'check' : 'plus'}" class="w-3.5 h-3.5"></i>
+                                <span>${isOut ? 'Habis' : inCart ? 'Ditambah' : 'Ambil'}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- 5. KERANJANG BON (CART LOGIC) ---
+        function addToCart(itemId) {
+            const item = inventory.find(i => i.id === itemId);
+            if (!item || item.stock <= 0) return;
+
+            const existing = cart.find(c => c.id === itemId);
+            if (existing) {
+                if (existing.qty + 1 <= item.stock) {
+                    existing.qty += 1;
+                    showToast(`Jumlah ${item.name} ditambah`, 'info');
+                } else {
+                    showToast(`Stok ${item.name} di gudang tidak mencukupi!`, 'error');
+                }
+            } else {
+                cart.push({
+                    id: item.id,
+                    name: item.name,
+                    qty: 1,
+                    unit: item.unit,
+                    maxStock: item.stock
+                });
+            }
+
+            renderCart();
+            renderKatalog();
+        }
+
+        function updateCartQty(itemId, newQty) {
+            const cartItem = cart.find(c => c.id === itemId);
+            const invItem = inventory.find(i => i.id === itemId);
+            if (!cartItem || !invItem) return;
+
+            const parsed = parseFloat(newQty);
+            if (isNaN(parsed) || parsed <= 0) {
+                removeFromCart(itemId);
+                return;
+            }
+
+            if (parsed > invItem.stock) {
+                showToast(`Maksimal stok tersedia: ${invItem.stock} ${invItem.unit}`, 'error');
+                cartItem.qty = invItem.stock;
+            } else {
+                cartItem.qty = parsed;
+            }
+
+            renderCart();
+        }
+
+        function removeFromCart(itemId) {
+            cart = cart.filter(c => c.id !== itemId);
+            renderCart();
+            renderKatalog();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items-container');
+            const countEl = document.getElementById('cart-count');
+            countEl.textContent = cart.length;
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div id="empty-cart-msg" class="h-32 flex flex-col items-center justify-center text-center text-slate-400">
+                        <i data-lucide="clipboard-list" class="w-8 h-8 mb-1.5 opacity-50"></i>
+                        <p class="text-xs">Belum ada bahan makanan dipilih.<br>Klik tombol <b>+ Ambil</b> di sebelah kiri.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-xs">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-semibold text-slate-800 truncate">${item.name}</p>
+                        <p class="text-[11px] text-slate-400">Tersedia: ${item.maxStock} ${item.unit}</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-1.5">
+                        <input 
+                            type="number" 
+                            step="0.1" 
+                            min="0.1" 
+                            max="${item.maxStock}"
+                            value="${item.qty}" 
+                            onchange="updateCartQty('${item.id}', this.value)"
+                            class="w-16 text-center text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg py-1 px-1.5 focus:ring-teal-500 focus:border-teal-500"
+                        >
+                        <span class="text-xs font-medium text-slate-600 w-11 truncate">${item.unit}</span>
+                        <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-rose-500 p-1 rounded transition" title="Hapus">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function resetBonForm() {
+            cart = [];
+            document.getElementById('input-catatan').value = '';
+            renderCart();
+            renderKatalog();
+        }
+
+        // --- 6. SUBMIT BON PENGAMBILAN ---
+        function submitBon() {
+            const ahliGizi = document.getElementById('input-ahli-gizi').value.trim();
+            const shift = document.getElementById('input-shift').value;
+            const peruntukan = document.getElementById('input-peruntukan').value;
+            const catatan = document.getElementById('input-catatan').value.trim();
+
+            if (!ahliGizi) {
+                showToast('Harap isi Nama Ahli Gizi / Petugas Pengambil!', 'error');
+                document.getElementById('input-ahli-gizi').focus();
+                return;
+            }
+
+            if (cart.length === 0) {
+                showToast('Pilih minimal 1 bahan makanan dari gudang!', 'error');
+                return;
+            }
+
+            // Kurangi stok di gudang
+            cart.forEach(cItem => {
+                const invItem = inventory.find(i => i.id === cItem.id);
+                if (invItem) {
+                    invItem.stock = Math.round((invItem.stock - cItem.qty) * 100) / 100;
+                }
+            });
+
+            // Buat objek transaksi bon baru
+            const noBon = document.getElementById('preview-no-bon').textContent;
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' +
+                            now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+            const newBon = {
+                noBon,
+                timestamp: timeStr,
+                ahliGizi,
+                shift,
+                peruntukan,
+                catatan: catatan || '-',
+                items: JSON.parse(JSON.stringify(cart))
+            };
+
+            bonHistory.unshift(newBon);
+
+            // Reset state & update UI
+            cart = [];
+            document.getElementById('input-catatan').value = '';
+            updateNextBonNumber();
+            renderCart();
+            renderKatalog();
+            renderRiwayat();
+            renderGudang();
+
+            showToast(`Bon ${noBon} berhasil dicatat & stok gudang diperbarui!`, 'success');
+            
+            // Langsung tampilkan modal struk bon agar bisa dicetak/dicek
+            openDetailBon(noBon);
+        }
+
+        // --- 7. RENDER RIWAYAT / BUKU LOG ---
+        function renderRiwayat() {
+            const tbody = document.getElementById('riwayat-tbody');
+            const query = document.getElementById('search-riwayat').value.toLowerCase();
+
+            const filtered = bonHistory.filter(b => 
+                b.noBon.toLowerCase().includes(query) ||
+                b.ahliGizi.toLowerCase().includes(query) ||
+                b.shift.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-400">Belum ada riwayat bon pengambilan.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(bon => {
+                const summaryItems = bon.items.map(i => `${i.name} (${i.qty} ${i.unit})`).join(', ');
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-4 py-3.5 font-mono font-bold text-teal-700 whitespace-nowrap">${bon.noBon}</td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500 whitespace-nowrap">${bon.timestamp}</td>
+                        <td class="px-4 py-3.5 font-medium text-slate-800">${bon.ahliGizi}</td>
+                        <td class="px-4 py-3.5">
+                            <span class="block text-xs font-semibold text-slate-700">${bon.shift}</span>
+                            <span class="text-[11px] text-slate-400">${bon.peruntukan}</span>
+                        </td>
+                        <td class="px-4 py-3.5 text-xs text-slate-600 max-w-xs truncate" title="${summaryItems}">
+                            <span class="font-semibold text-slate-700">${bon.items.length} item:</span> ${summaryItems}
+                        </td>
+                        <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                            <button onclick="openDetailBon('${bon.noBon}')" class="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i> Detail / Cetak
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- 8. MODAL DETAIL & CETAK ---
+        function openDetailBon(noBon) {
+            const bon = bonHistory.find(b => b.noBon === noBon);
+            if (!bon) return;
+
+            document.getElementById('detail-no-bon').textContent = bon.noBon;
+            document.getElementById('detail-tanggal').textContent = bon.timestamp;
+            document.getElementById('detail-ahli-gizi').textContent = bon.ahliGizi;
+            document.getElementById('detail-shift').textContent = bon.shift;
+            document.getElementById('detail-peruntukan').textContent = bon.peruntukan;
+            document.getElementById('detail-catatan').textContent = bon.catatan;
+            document.getElementById('detail-ttd-nama').textContent = `( ${bon.ahliGizi} )`;
+
+            const tbody = document.getElementById('detail-items-tbody');
+            tbody.innerHTML = bon.items.map((item, idx) => `
+                <tr>
+                    <td class="py-2 text-slate-500">${idx + 1}.</td>
+                    <td class="py-2 font-medium text-slate-800">${item.name}</td>
+                    <td class="py-2 text-right font-bold text-slate-800">${item.qty} ${item.unit}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('modal-detail-bon').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // --- 9. MANAJEMEN STOK GUDANG ---
+        function renderGudang() {
+            const tbody = document.getElementById('gudang-tbody');
+            
+            // Update Statistik
+            document.getElementById('stat-total-jenis').textContent = inventory.length;
+            document.getElementById('stat-stok-menipis').textContent = inventory.filter(i => i.stock <= 5).length;
+            document.getElementById('stat-total-bon').textContent = bonHistory.length;
+
+            tbody.innerHTML = inventory.map(item => {
+                let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Aman</span>`;
+                if (item.stock <= 0) {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-700">Habis</span>`;
+                } else if (item.stock <= 5) {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Menipis</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500">${item.id}</td>
+                        <td class="px-4 py-3 font-semibold text-slate-800">${item.name}</td>
+                        <td class="px-4 py-3 text-xs text-slate-500">${item.category}</td>
+                        <td class="px-4 py-3 font-bold text-slate-700">${item.stock} ${item.unit}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="quickRestock('${item.id}', 10)" class="bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition">
+                                +10 ${item.unit}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function quickRestock(itemId, amount) {
+            const item = inventory.find(i => i.id === itemId);
+            if (!item) return;
+            item.stock += amount;
+            renderGudang();
+            renderKatalog();
+            showToast(`Stok ${item.name} ditambah +${amount} ${item.unit}`, 'success');
+        }
+
+        function openModalTambahBarang() {
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-stock').value = '10';
+            document.getElementById('modal-tambah-barang').classList.remove('hidden');
+        }
+
+        function simpanBarangBaru() {
+            const name = document.getElementById('new-item-name').value.trim();
+            const category = document.getElementById('new-item-cat').value;
+            const unit = document.getElementById('new-item-unit').value;
+            const stock = parseFloat(document.getElementById('new-item-stock').value);
+
+            if (!name || isNaN(stock) || stock < 0) {
+                showToast('Lengkapi nama bahan dan stok awal dengan benar!', 'error');
+                return;
+            }
+
+            const newId = 'BM-' + String(inventory.length + 1).padStart(3, '0');
+            inventory.unshift({
+                id: newId,
+                name,
+                category,
+                stock,
+                unit
+            });
+
+            closeModal('modal-tambah-barang');
+            renderGudang();
+            renderKatalog();
+            showToast(`${name} berhasil ditambahkan ke gudang!`, 'success');
+        }
+
+        // --- 10. EXPORT CSV LAPORAN ---
+        function exportCSV() {
+            if (bonHistory.length === 0) {
+                showToast('Belum ada data untuk diunduh.', 'error');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "No Bon,Waktu,Ahli Gizi,Shift,Peruntukan,Nama Bahan,Jumlah,Satuan,Catatan\n";
+
+            bonHistory.forEach(bon => {
+                bon.items.forEach(item => {
+                    const row = [
+                        bon.noBon,
+                        `"${bon.timestamp}"`,
+                        `"${bon.ahliGizi}"`,
+                        `"${bon.shift}"`,
+                        `"${bon.peruntukan}"`,
+                        `"${item.name}"`,
+                        item.qty,
+                        item.unit,
+                        `"${bon.catatan}"`
+                    ].join(",");
+                    csvContent += row + "\n";
+                });
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_Bon_Gizi_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Laporan CSV berhasil diunduh!', 'success');
+        }
+
+        // --- 11. CUSTOM TOAST NOTIFICATION ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = 'bg-slate-800 text-white';
+            let icon = 'info';
+            if (type === 'success') { bg = 'bg-emerald-600 text-white'; icon = 'check-circle'; }
+            if (type === 'error') { bg = 'bg-rose-600 text-white'; icon = 'alert-circle'; }
+
+            toast.className = `${bg} px-4 py-3 rounded-xl shadow-lg flex items-center space-x-2.5 text-xs font-medium transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
